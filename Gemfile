@@ -41,8 +41,6 @@ group :development, :test do
 end
 
 
-
-gem "devise", "~> 4.9"
-gem "devise_token_auth", "~> 1.2"
+gem 'knock'
 gem "rack-cors", "~> 3.0"
 gem "bcrypt", "~> 3.1"
