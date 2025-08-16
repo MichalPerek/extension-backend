@@ -12,7 +12,7 @@ class Api::AuthController < ApplicationController
           id: user.id,
           name: user.name,
           email: user.email,
-          plan: user.plan,
+          plan: user.plan_name,
           joinDate: user.join_date,
           usage: user.usage_stats
         },
@@ -57,7 +57,7 @@ class Api::AuthController < ApplicationController
           id: user.id,
           name: user.name,
           email: user.email,
-          plan: user.plan,
+          plan: user.plan_name,
           joinDate: user.join_date,
           usage: user.usage_stats
         },

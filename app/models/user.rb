@@ -12,10 +12,11 @@ class User < ApplicationRecord
 
   # Associations
   has_many :conversations, dependent: :destroy
+  belongs_to :plan, optional: true
 
   # Add any additional methods you need for your extension
-  def plan
-    'Pro Plan' # You can make this dynamic based on subscription
+  def plan_name
+    plan&.name || 'Free Plan'
   end
 
   # Point management methods
@@ -40,18 +41,20 @@ class User < ApplicationRecord
 
   # Plan-based initial points
   def set_plan_points
-    points = case plan
-    when 'Free Plan'
-      10
-    when 'Pro Plan'
-      100
-    when 'Enterprise Plan'
-      1000
-    else
-      0
-    end
+    user_plan = plan || Plan.default_plan
+    return unless user_plan
     
+    points = user_plan.points
     update!(initial_points: points, remaining_points: points)
+  end
+
+  def assign_plan(plan_name)
+    new_plan = Plan.find_by_name(plan_name)
+    return false unless new_plan
+    
+    update!(plan: new_plan)
+    set_plan_points
+    true
   end
 
   def usage_stats
@@ -59,7 +62,8 @@ class User < ApplicationRecord
       textsProcessed: conversations.count,
       monthlyLimit: initial_points,
       remainingPoints: remaining_points,
-      pointsUsed: initial_points - remaining_points
+      pointsUsed: initial_points - remaining_points,
+      planName: plan_name
     }
   end
 

@@ -20,6 +20,12 @@ Rails.application.routes.draw do
         patch :discard
       end
     end
+    
+    resources :plans, only: [:index, :show, :create, :update, :destroy] do
+      member do
+        post :assign_to_user
+      end
+    end
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
