@@ -2,16 +2,10 @@
 
 one:
   user: one
-  original_text: MyText
-  conversation_steps: 
-  final_text: MyText
-  status: 1
-  metadata: 
+  original_text: "Hello, this is a test conversation"
+  final_text: "Processed: 'Hello, this is a test conversation' - This is a mock response."
 
 two:
   user: two
-  original_text: MyText
-  conversation_steps: 
-  final_text: MyText
-  status: 1
-  metadata: 
+  original_text: "Another test conversation"
+  final_text: "Processed: 'Another test conversation' - This is a mock response."

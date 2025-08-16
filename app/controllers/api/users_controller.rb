@@ -7,11 +7,7 @@ class Api::UsersController < ApplicationController
         id: current_user.id,
         name: current_user.name,
         email: current_user.email,
-        role: current_user.role,
-        rolePermissions: current_user.role_permissions,
-        plan: current_user.plan,
-        joinDate: current_user.join_date,
-        usage: current_user.usage_stats
+        joinDate: current_user.join_date
       }
     }
   end
@@ -21,26 +17,14 @@ class Api::UsersController < ApplicationController
       user: {
         name: current_user.name,
         email: current_user.email,
-        role: current_user.role,
-        rolePermissions: current_user.role_permissions,
-        plan: current_user.plan,
-        joinDate: current_user.join_date,
-        usage: current_user.usage_stats
+        joinDate: current_user.join_date
       }
-    }
-  end
-
-  def usage
-    render json: {
-      usage: current_user.usage_stats
     }
   end
 
   private
 
   def authenticate_user!
-    # For now, we'll use a simple token-based authentication
-    # In production, you should use proper JWT tokens
     token = request.headers['Authorization']&.split(' ')&.last
     
     if token.blank?
@@ -48,25 +32,18 @@ class Api::UsersController < ApplicationController
       return
     end
 
-    # For development, we'll create a mock user
-    # In production, you should decode the JWT token and find the user
-    @current_user = User.first || create_mock_user
+    # Simple token parsing for development
+    # In production, use proper JWT tokens
+    user_id = token.split('_')[1]
+    @current_user = User.find_by(id: user_id)
+    
+    unless @current_user
+      render json: { error: 'Invalid token' }, status: :unauthorized
+      return
+    end
   end
 
   def current_user
     @current_user
-  end
-
-  def create_mock_user
-    user = User.create!(
-      name: 'John Doe',
-      email: 'john@example.com',
-      password: 'password123',
-      provider: 'email',
-      uid: 'john@example.com',
-      role: 'admin'
-    )
-    user.set_plan_points
-    user
   end
 end

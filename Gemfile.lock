@@ -102,11 +102,6 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.13.2)
-    jwt (1.5.6)
-    knock (2.1.1)
-      bcrypt (~> 3.1)
-      jwt (~> 1.5)
-      rails (>= 4.2)
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -275,11 +270,10 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  bcrypt (~> 3.1)
+  bcrypt (~> 3.1.7)
   bootsnap
   brakeman
   debug
-  knock
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors (~> 3.0)

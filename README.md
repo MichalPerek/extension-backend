@@ -1,130 +1,56 @@
-# Text Assistant Backend API
+# Extension Backend
 
-Ruby on Rails API backend for the Text Assistant Chrome extension.
+A simple Rails API backend for the Chrome extension.
 
-## Project Structure
+## Structure
 
-This repository contains the Rails API backend:
+This is a clean, basic Rails API with:
 
-```
-extension-backend/
-├── app/
-│   ├── controllers/api/
-│   │   ├── auth_controller.rb    # Login/signup endpoints
-│   │   └── users_controller.rb   # User profile/usage endpoints
-│   └── models/
-│       └── user.rb              # User model with devise_token_auth
-├── config/
-│   ├── routes.rb                # API routes
-│   └── application.rb           # Rails configuration
-└── db/                          # Database migrations
-```
+- **Users**: Simple user authentication with secure passwords
+- **Conversations**: Basic conversation storage and retrieval
+- **Simple Token Authentication**: Basic token-based auth for development
 
-## Setup
+## Models
 
-### Prerequisites
+### User
+- `name`: User's display name
+- `email`: Unique email address
+- `password_digest`: Encrypted password (using bcrypt)
 
-- Ruby 3.3.5 or higher
-- PostgreSQL
-- Rails 7.2
-
-### Installation
-
-1. Install dependencies:
-   ```bash
-   bundle install
-   ```
-
-2. Create and setup the database:
-   ```bash
-   rails db:create
-   rails db:migrate
-   ```
-
-3. Start the server:
-   ```bash
-   rails server
-   ```
-
-The API will be available at `http://localhost:3000`
+### Conversation
+- `user_id`: Reference to the user who created it
+- `original_text`: The original text input
+- `final_text`: The processed/response text
 
 ## API Endpoints
 
 ### Authentication
+- `POST /api/auth/signup` - Create a new user
+- `POST /api/auth/login` - Login existing user
 
-#### Login
-```
-POST /api/auth/login
-Content-Type: application/json
+### Users
+- `GET /api/users/profile` - Get current user profile
+- `GET /api/users/:id` - Get user by ID
 
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
+### Conversations
+- `GET /api/conversations` - List user's conversations
+- `POST /api/conversations` - Create new conversation
+- `GET /api/conversations/:id` - Get conversation by ID
 
-Response:
-```json
-{
-  "success": true,
-  "user": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "user@example.com",
-    "plan": "Pro Plan",
-    "joinDate": "August 2024",
-    "usage": {
-      "textsProcessed": 247,
-      "monthlyLimit": 1000
-    }
-  },
-  "token": "your_auth_token"
-}
-```
+## Setup
 
-#### Signup
-```
-POST /api/auth/signup
-Content-Type: application/json
+1. Install dependencies: `bundle install`
+2. Setup database: `bin/rails db:create db:migrate db:seed`
+3. Start server: `bin/rails server`
 
-{
-  "name": "John Doe",
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
+## Testing
 
-### User Data
+Run tests with: `bin/rails test`
 
-#### Get User Profile
-```
-GET /api/users/profile
-Authorization: Bearer your_auth_token
-```
+## Authentication
 
-#### Get Usage Statistics
-```
-GET /api/users/usage
-Authorization: Bearer your_auth_token
-```
+For development, the system uses simple tokens in the format: `token_{user_id}_{timestamp}`
 
-## Development
+Include in headers: `Authorization: Bearer token_1_1234567890`
 
-### Starting the Server
-```bash
-rails server
-```
-
-### Running Tests
-```bash
-rails test
-```
-
-### Database Console
-```bash
-rails console
-```
-
-## Related Repositories
-
-- **Frontend**: [extension](https://github.com/yourusername/extension) - Chrome extension frontend
+**Note**: This is for development only. In production, use proper JWT tokens.

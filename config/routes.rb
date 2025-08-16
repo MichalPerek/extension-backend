@@ -1,6 +1,4 @@
 Rails.application.routes.draw do
-  # mount_devise_token_auth_for 'User', at: 'auth'
-  
   # API routes for Chrome extension
   namespace :api do
     post 'auth/login'
@@ -9,23 +7,10 @@ Rails.application.routes.draw do
     resources :users, only: [:show] do
       collection do
         get :profile
-        get :usage
       end
     end
     
-    resources :conversations, only: [:index, :create] do
-      member do
-        post :add_step
-        patch :complete
-        patch :discard
-      end
-    end
-    
-    resources :plans, only: [:index, :show, :create, :update, :destroy] do
-      member do
-        post :assign_to_user
-      end
-    end
+    resources :conversations, only: [:index, :create, :show]
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

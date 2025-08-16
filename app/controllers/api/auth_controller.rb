@@ -5,16 +5,14 @@ class Api::AuthController < ApplicationController
 
     user = User.find_by(email: email)
 
-    if user&.valid_password?(password)
+    if user&.authenticate(password)
       render json: {
         success: true,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
-          plan: user.plan_name,
-          joinDate: user.join_date,
-          usage: user.usage_stats
+          joinDate: user.join_date
         },
         token: generate_token(user)
       }
@@ -29,7 +27,7 @@ class Api::AuthController < ApplicationController
   def signup
     name = params[:name]
     email = params[:email]
-    # password = params[:password] # Not using password for now
+    password = params[:password]
 
     if User.exists?(email: email)
       render json: { 
@@ -42,24 +40,17 @@ class Api::AuthController < ApplicationController
     user = User.new(
       name: name,
       email: email,
-      # password: password, # Not using password for now
-      provider: 'email',
-      uid: email
+      password: password
     )
 
     if user.save
-      # Set initial points based on plan
-      user.set_plan_points
-      
       render json: {
         success: true,
         user: {
           id: user.id,
           name: user.name,
           email: user.email,
-          plan: user.plan_name,
-          joinDate: user.join_date,
-          usage: user.usage_stats
+          joinDate: user.join_date
         },
         token: generate_token(user)
       }
