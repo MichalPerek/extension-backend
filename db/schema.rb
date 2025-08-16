@@ -10,9 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_16_071853) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_16_085835) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "conversations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.text "original_text", null: false
+    t.jsonb "conversation_steps", default: [], null: false
+    t.text "final_text"
+    t.integer "status", default: 0, null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_conversations_on_status"
+    t.index ["user_id", "created_at"], name: "index_conversations_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_conversations_on_user_id"
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email"
@@ -33,9 +47,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_16_071853) do
     t.string "unconfirmed_email"
     t.string "nickname"
     t.string "image"
+    t.integer "initial_points", default: 0, null: false
+    t.integer "remaining_points", default: 0, null: false
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["remaining_points"], name: "index_users_on_remaining_points"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["uid", "provider"], name: "index_users_on_uid_and_provider", unique: true
   end
+
+  add_foreign_key "conversations", "users"
 end

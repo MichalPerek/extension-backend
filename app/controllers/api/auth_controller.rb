@@ -29,7 +29,7 @@ class Api::AuthController < ApplicationController
   def signup
     name = params[:name]
     email = params[:email]
-    password = params[:password]
+    # password = params[:password] # Not using password for now
 
     if User.exists?(email: email)
       render json: { 
@@ -42,12 +42,15 @@ class Api::AuthController < ApplicationController
     user = User.new(
       name: name,
       email: email,
-      password: password,
+      # password: password, # Not using password for now
       provider: 'email',
       uid: email
     )
 
     if user.save
+      # Set initial points based on plan
+      user.set_plan_points
+      
       render json: {
         success: true,
         user: {

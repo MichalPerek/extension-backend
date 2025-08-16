@@ -20,7 +20,8 @@ class Api::UsersController < ApplicationController
         name: current_user.name,
         email: current_user.email,
         plan: current_user.plan,
-        joinDate: current_user.join_date
+        joinDate: current_user.join_date,
+        usage: current_user.usage_stats
       }
     }
   end
@@ -53,12 +54,14 @@ class Api::UsersController < ApplicationController
   end
 
   def create_mock_user
-    User.create!(
+    user = User.create!(
       name: 'John Doe',
       email: 'john@example.com',
       password: 'password123',
       provider: 'email',
       uid: 'john@example.com'
     )
+    user.set_plan_points
+    user
   end
 end

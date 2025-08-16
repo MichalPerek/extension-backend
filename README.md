@@ -2,6 +2,24 @@
 
 Ruby on Rails API backend for the Text Assistant Chrome extension.
 
+## Project Structure
+
+This repository contains the Rails API backend:
+
+```
+extension-backend/
+├── app/
+│   ├── controllers/api/
+│   │   ├── auth_controller.rb    # Login/signup endpoints
+│   │   └── users_controller.rb   # User profile/usage endpoints
+│   └── models/
+│       └── user.rb              # User model with devise_token_auth
+├── config/
+│   ├── routes.rb                # API routes
+│   └── application.rb           # Rails configuration
+└── db/                          # Database migrations
+```
+
 ## Setup
 
 ### Prerequisites
@@ -60,7 +78,7 @@ Response:
       "monthlyLimit": 1000
     }
   },
-  "token": "token_1_1234567890"
+  "token": "your_auth_token"
 }
 ```
 
@@ -81,71 +99,32 @@ Content-Type: application/json
 #### Get User Profile
 ```
 GET /api/users/profile
-Authorization: Bearer token_1_1234567890
-```
-
-Response:
-```json
-{
-  "user": {
-    "name": "John Doe",
-    "email": "user@example.com",
-    "plan": "Pro Plan",
-    "joinDate": "August 2024"
-  }
-}
+Authorization: Bearer your_auth_token
 ```
 
 #### Get Usage Statistics
 ```
 GET /api/users/usage
-Authorization: Bearer token_1_1234567890
-```
-
-Response:
-```json
-{
-  "usage": {
-    "textsProcessed": 247,
-    "monthlyLimit": 1000
-  }
-}
+Authorization: Bearer your_auth_token
 ```
 
 ## Development
 
-### Database
-
-The application uses PostgreSQL. Make sure you have PostgreSQL installed and running.
-
-### Environment Variables
-
-Create a `.env` file in the backend directory for environment-specific configuration:
-
-```env
-DATABASE_URL=postgresql://localhost/text_assistant_backend_development
-SECRET_KEY_BASE=your_secret_key_here
+### Starting the Server
+```bash
+rails server
 ```
 
-### Testing
-
-Run the test suite:
+### Running Tests
 ```bash
 rails test
 ```
 
-## Production Deployment
+### Database Console
+```bash
+rails console
+```
 
-1. Set up environment variables
-2. Configure CORS to allow your Chrome extension ID
-3. Set up proper JWT token authentication
-4. Configure database for production
-5. Deploy to your preferred hosting platform (Heroku, AWS, etc.)
+## Related Repositories
 
-## Security Notes
-
-- The current implementation uses simple tokens for development
-- In production, implement proper JWT token authentication
-- Configure CORS to only allow your Chrome extension ID
-- Use HTTPS in production
-- Implement rate limiting for API endpoints
+- **Frontend**: [extension](https://github.com/yourusername/extension) - Chrome extension frontend
