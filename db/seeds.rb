@@ -41,3 +41,41 @@ puts "Created #{Plan.count} plans:"
 Plan.all.each do |plan|
   puts "  - #{plan.name}: #{plan.points} points"
 end
+
+# Create default users with roles
+users_data = [
+  {
+    name: 'Admin User',
+    email: 'admin@example.com',
+    role: 'admin',
+    provider: 'email',
+    uid: 'admin@example.com',
+    initial_points: 1000,
+    remaining_points: 1000
+  },
+  {
+    name: 'Standard User',
+    email: 'user@example.com',
+    role: 'standard',
+    provider: 'email',
+    uid: 'user@example.com',
+    initial_points: 100,
+    remaining_points: 100
+  }
+]
+
+users_data.each do |user_data|
+  User.find_or_create_by!(email: user_data[:email]) do |user|
+    user.name = user_data[:name]
+    user.role = user_data[:role]
+    user.provider = user_data[:provider]
+    user.uid = user_data[:uid]
+    user.initial_points = user_data[:initial_points]
+    user.remaining_points = user_data[:remaining_points]
+  end
+end
+
+puts "\nCreated #{User.count} users:"
+User.all.each do |user|
+  puts "  - #{user.name} (#{user.email}): #{user.role} role"
+end

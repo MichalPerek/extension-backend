@@ -7,6 +7,8 @@ class Api::UsersController < ApplicationController
         id: current_user.id,
         name: current_user.name,
         email: current_user.email,
+        role: current_user.role,
+        rolePermissions: current_user.role_permissions,
         plan: current_user.plan,
         joinDate: current_user.join_date,
         usage: current_user.usage_stats
@@ -19,6 +21,8 @@ class Api::UsersController < ApplicationController
       user: {
         name: current_user.name,
         email: current_user.email,
+        role: current_user.role,
+        rolePermissions: current_user.role_permissions,
         plan: current_user.plan,
         joinDate: current_user.join_date,
         usage: current_user.usage_stats
@@ -59,7 +63,8 @@ class Api::UsersController < ApplicationController
       email: 'john@example.com',
       password: 'password123',
       provider: 'email',
-      uid: 'john@example.com'
+      uid: 'john@example.com',
+      role: 'admin'
     )
     user.set_plan_points
     user

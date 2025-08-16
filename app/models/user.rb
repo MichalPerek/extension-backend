@@ -9,6 +9,7 @@ class User < ApplicationRecord
   validates :email, presence: true, uniqueness: true
   validates :initial_points, numericality: { greater_than_or_equal_to: 0 }
   validates :remaining_points, numericality: { greater_than_or_equal_to: 0 }
+  validates :role, presence: true, inclusion: { in: %w[admin standard] }
 
   # Associations
   has_many :conversations, dependent: :destroy
@@ -65,6 +66,50 @@ class User < ApplicationRecord
       pointsUsed: initial_points - remaining_points,
       planName: plan_name
     }
+  end
+
+  # Role-based methods
+  def admin?
+    role == 'admin'
+  end
+
+  def standard?
+    role == 'standard'
+  end
+
+  def can_manage_users?
+    admin?
+  end
+
+  def can_manage_plans?
+    admin?
+  end
+
+  def can_view_all_conversations?
+    admin?
+  end
+
+  def role_permissions
+    case role
+    when 'admin'
+      {
+        canManageUsers: true,
+        canManagePlans: true,
+        canViewAllConversations: true,
+        canDeleteContent: true,
+        canModifySettings: true
+      }
+    when 'standard'
+      {
+        canManageUsers: false,
+        canManagePlans: false,
+        canViewAllConversations: false,
+        canDeleteContent: false,
+        canModifySettings: false
+      }
+    else
+      {}
+    end
   end
 
   def join_date
