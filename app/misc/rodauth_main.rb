@@ -4,6 +4,9 @@ class RodauthMain < Rodauth::Rails::Auth
   configure do
     # List of authentication features that are loaded.
     enable :create_account, :login, :logout, :json, :jwt
+    
+    # Use JWT for sessions instead of cookies
+    use_jwt? true
 
     # See the Rodauth documentation for the list of available config options:
     # http://rodauth.jeremyevans.net/documentation.html
@@ -63,6 +66,32 @@ class RodauthMain < Rodauth::Rails::Auth
     
     # Return JWT token in JSON responses
     json_response_success_key "success"
+    
+    # Return user profile data on successful login (JWT token handled automatically by Rodauth)
+    login_response do
+      if json_request?
+        json_response["user"] = {
+          id: account[:id],
+          name: account[:name],
+          email: account[:email],
+          join_date: Account.find(account[:id])&.join_date
+        }
+      end
+      super()
+    end
+    
+    # Return user profile data on successful account creation (JWT token handled automatically by Rodauth)
+    create_account_response do
+      if json_request?
+        json_response["user"] = {
+          id: account[:id],
+          name: account[:name],
+          email: account[:email],
+          join_date: Account.find(account[:id])&.join_date
+        }
+      end
+      super()
+    end
 
     # Change some default param keys.
     login_param "email"
