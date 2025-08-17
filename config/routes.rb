@@ -1,14 +1,11 @@
 Rails.application.routes.draw do
+  # Mount Rodauth for authentication
+  mount RodauthApp => "/auth"
+  
   # API routes for Chrome extension
   namespace :api do
-    post 'auth/login'
-    post 'auth/signup'
-    
-    resources :users, only: [:show] do
-      collection do
-        get :profile
-      end
-    end
+    # Profile endpoint
+    get 'users/profile', to: 'users#profile'
     
     resources :conversations, only: [:index, :create, :show]
   end
