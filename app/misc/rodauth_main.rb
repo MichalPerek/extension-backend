@@ -60,6 +60,9 @@ class RodauthMain < Rodauth::Rails::Auth
     before_create_account do
       account[:name] = param("name") if param("name")
     end
+    
+    # Return JWT token in JSON responses
+    json_response_success_key "success"
 
     # Change some default param keys.
     login_param "email"
