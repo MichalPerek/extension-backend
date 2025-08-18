@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     get 'users/profile', to: 'users#profile'
     
     resources :conversations, only: [:index, :create, :show]
+    resources :user_prompts, only: [:index, :show, :create, :update, :destroy]
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
