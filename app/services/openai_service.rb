@@ -84,8 +84,8 @@ class OpenaiService
       test_config = {
         model: llm_model.model_id,
         messages: messages,
-        max_tokens: 5,
-        temperature: 0.7
+        max_completion_tokens: 5,
+        # temperature: 0.7
       }
       
       response = make_direct_api_request(test_config)
@@ -123,14 +123,11 @@ class OpenaiService
   def make_api_request(messages, llm_model)
     request_body = {
       model: llm_model.model_id,
-      messages: messages,
-      max_tokens: llm_model.max_tokens,
-      temperature: llm_model.temperature
+      messages: messages
     }
 
     # Add any additional config from the LLM model
     llm_model.config.each do |key, value|
-      next if %w[max_tokens temperature].include?(key) # Already handled above
       request_body[key.to_sym] = value
     end
 
@@ -142,6 +139,7 @@ class OpenaiService
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
     http.read_timeout = 30
+    http.open_timeout = 10
 
     request = Net::HTTP::Post.new(uri)
     request['Authorization'] = "Bearer #{@api_key}"
@@ -159,7 +157,7 @@ class OpenaiService
     JSON.parse(response.body)
   rescue JSON::ParserError => e
     raise "Invalid response from OpenAI API: #{e.message}"
-  rescue Net::TimeoutError => e
+  rescue Net::ReadTimeout, Net::OpenTimeout => e
     raise "Request timeout: #{e.message}"
   rescue => e
     raise "OpenAI API error: #{e.message}"
