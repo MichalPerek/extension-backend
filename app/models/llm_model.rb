@@ -48,4 +48,34 @@ class LlmModel < ApplicationRecord
       enabled: enabled
     }
   end
+
+  # Helper method to enable/disable parameters
+  def enable_parameter(param_name, value = nil)
+    config[param_name] = value if value
+    config["#{param_name}_enabled"] = true
+    save!
+  end
+
+  def disable_parameter(param_name)
+    config["#{param_name}_enabled"] = false
+    save!
+  end
+
+  def parameter_enabled?(param_name)
+    config["#{param_name}_enabled"] == true
+  end
+
+  # Get effective configuration (only enabled parameters)
+  def effective_config
+    effective = {}
+    
+    # All parameters are now conditional
+    %w[max_completion_tokens temperature top_p frequency_penalty presence_penalty max_tokens].each do |param|
+      if parameter_enabled?(param) && config[param]
+        effective[param] = config[param]
+      end
+    end
+    
+    effective
+  end
 end

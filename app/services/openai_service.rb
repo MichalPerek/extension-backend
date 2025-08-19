@@ -83,9 +83,7 @@ class OpenaiService
       # Use a minimal configuration for testing
       test_config = {
         model: llm_model.model_id,
-        messages: messages,
-        max_completion_tokens: 5,
-        # temperature: 0.7
+        messages: messages
       }
       
       response = make_direct_api_request(test_config)
@@ -126,9 +124,33 @@ class OpenaiService
       messages: messages
     }
 
-    # Add any additional config from the LLM model
-    llm_model.config.each do |key, value|
-      request_body[key.to_sym] = value
+    # Add configuration parameters conditionally based on enable flags
+    config = llm_model.config
+    
+    # All parameters are now conditional
+    if config['max_completion_tokens_enabled'] && config['max_completion_tokens']
+      request_body[:max_completion_tokens] = config['max_completion_tokens']
+    end
+    
+    if config['temperature_enabled'] && config['temperature']
+      request_body[:temperature] = config['temperature']
+    end
+    
+    if config['top_p_enabled'] && config['top_p']
+      request_body[:top_p] = config['top_p']
+    end
+    
+    if config['frequency_penalty_enabled'] && config['frequency_penalty']
+      request_body[:frequency_penalty] = config['frequency_penalty']
+    end
+    
+    if config['presence_penalty_enabled'] && config['presence_penalty']
+      request_body[:presence_penalty] = config['presence_penalty']
+    end
+    
+    # Legacy max_tokens support (for older models)
+    if config['max_tokens_enabled'] && config['max_tokens']
+      request_body[:max_tokens] = config['max_tokens']
     end
 
     make_direct_api_request(request_body)

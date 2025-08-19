@@ -30,9 +30,9 @@ Return ONLY a JSON object with exactly these keys (no markdown, no extra keys, n
   "task_summary": "<5-12 words describing what you did>"
 }'
   model.config = {
+    # All parameters are now conditional with enable flags
+    'max_completion_tokens_enabled' => true,
     'max_completion_tokens' => 2000
-    # Note: GPT-5-nano only supports max_completion_tokens
-    # Other parameters like temperature, top_p, etc. are not supported
   }
   model.enabled = true
 end
