@@ -4,7 +4,6 @@ class Api::Ai::ProcessingController < ApplicationController
   def process_prompt
     user_input = params[:userInput]
     instruction = params[:instruction]
-    model_identifier = params[:model] # This is now the LLM model identifier
     conversation_id = params[:conversationId] # Optional: for continuing an existing conversation
     session_id = params[:sessionId] # Optional: for grouping related conversations
 
@@ -13,10 +12,13 @@ class Api::Ai::ProcessingController < ApplicationController
       return
     end
 
-    # Find the LLM model configuration
-    llm_model = find_llm_model(model_identifier)
+    # Automatically select the first available enabled model
+    llm_model = LlmModel.enabled.first
+    Rails.logger.info "Auto-selected AI model: #{llm_model&.provider}:#{llm_model&.model_id} (#{llm_model&.name})"
+    
     unless llm_model
-      render json: { error: 'Model not found or not enabled' }, status: :bad_request
+      Rails.logger.error "No AI models are currently available"
+      render json: { error: 'No AI models are currently available' }, status: :service_unavailable
       return
     end
 
@@ -126,11 +128,10 @@ class Api::Ai::ProcessingController < ApplicationController
   end
 
   def test_model
-    model_identifier = params[:model_id]
-    
-    llm_model = find_llm_model(model_identifier)
+    # Test the first available enabled model
+    llm_model = LlmModel.enabled.first
     unless llm_model
-      render json: { success: false, message: 'Model not found' }
+      render json: { success: false, message: 'No AI models are currently available' }
       return
     end
     
@@ -163,13 +164,7 @@ class Api::Ai::ProcessingController < ApplicationController
     )
   end
 
-  def find_llm_model(model_identifier)
-    return LlmModel.enabled.first if model_identifier.blank? # Default to first enabled model
-    
-    # Try to find by full identifier (provider:model_id) or just model_id
-    LlmModel.find_by_model_identifier(model_identifier) || 
-    LlmModel.enabled.find_by(id: model_identifier) # Allow finding by database ID too
-  end
+
 
   def get_ai_provider_service(llm_model)
     case llm_model.provider

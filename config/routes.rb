@@ -20,7 +20,7 @@ Rails.application.routes.draw do
       post 'process', to: 'processing#process_prompt'
       get 'models', to: 'processing#models'
       get 'available_models', to: 'processing#available_models'
-      post 'test/:model_id', to: 'processing#test_model'
+      post 'test', to: 'processing#test_model'
     end
   end
   
