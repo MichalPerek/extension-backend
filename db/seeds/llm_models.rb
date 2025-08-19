@@ -1,66 +1,42 @@
-# Create default LLM models with global configurations
+# Create default LLM model with universal text assistant configuration
 
-# OpenAI Models
-LlmModel.find_or_create_by(provider: 'openai', model_id: 'gpt-3.5-turbo') do |model|
-  model.name = 'GPT-3.5 Turbo'
-  model.prompt = 'You are a helpful assistant. Follow the user\'s instructions carefully and provide accurate, helpful responses.'
-  model.config = {
-    'temperature' => 0.7,
-    'max_tokens' => 1000,
-    'top_p' => 1.0,
-    'frequency_penalty' => 0.0,
-    'presence_penalty' => 0.0
-  }
-  model.enabled = true
-end
+# Clear existing models first
+LlmModel.destroy_all
 
-LlmModel.find_or_create_by(provider: 'openai', model_id: 'gpt-4') do |model|
-  model.name = 'GPT-4'
-  model.prompt = 'You are a highly capable AI assistant. Provide detailed, accurate, and thoughtful responses to user queries.'
+# OpenAI GPT-5-Nano Model
+LlmModel.find_or_create_by(provider: 'openai', model_id: 'gpt-5-nano') do |model|
+  model.name = 'GPT-5 Nano'
+  model.prompt = 'You are a universal text assistant.
+
+GOAL
+- Follow the user\'s instruction to transform the provided text (rewrite, proofread, shorten, expand, translate, summarize, change tone/style, or format).
+
+CORE RULES
+- Preserve original meaning; do not invent facts.
+- Keep names, numbers, prices, dates, URLs, and units accurate.
+- Maintain the input language unless the instruction asks to change it.
+- Honor any explicit constraints (length, tone, audience, format).
+- Be concise by default; remove filler and redundancy.
+- If instruction is unclear, perform a minimal grammar/clarity improvement.
+- Do not add explanations or commentary outside the JSON.
+
+OUTPUT
+Return ONLY a JSON object with exactly these keys (no markdown, no extra keys, no trailing text):
+{
+  "instruction": "<the user\'s instruction you followed, verbatim or minimally normalized>",
+  "original_text": "<the user\'s original text, verbatim>",
+  "result_text": "<the final transformed text>",
+  "language": "<BCP-47 code like \'en\' or \'pl\' for result_text>",
+  "task_summary": "<5-12 words describing what you did>"
+}'
   model.config = {
-    'temperature' => 0.7,
+    'temperature' => 0.3,
     'max_tokens' => 2000,
     'top_p' => 1.0,
     'frequency_penalty' => 0.0,
     'presence_penalty' => 0.0
   }
   model.enabled = true
-end
-
-LlmModel.find_or_create_by(provider: 'openai', model_id: 'gpt-4-turbo') do |model|
-  model.name = 'GPT-4 Turbo'
-  model.prompt = 'You are an advanced AI assistant. Provide comprehensive and well-structured responses.'
-  model.config = {
-    'temperature' => 0.7,
-    'max_tokens' => 2000,
-    'top_p' => 1.0,
-    'frequency_penalty' => 0.0,
-    'presence_penalty' => 0.0
-  }
-  model.enabled = true
-end
-
-# Anthropic Models (for future implementation)
-LlmModel.find_or_create_by(provider: 'anthropic', model_id: 'claude-3-sonnet') do |model|
-  model.name = 'Claude 3 Sonnet'
-  model.prompt = 'You are Claude, an AI assistant created by Anthropic. Provide helpful, harmless, and honest responses.'
-  model.config = {
-    'temperature' => 0.7,
-    'max_tokens' => 1000,
-    'top_p' => 1.0
-  }
-  model.enabled = false # Disabled until implemented
-end
-
-LlmModel.find_or_create_by(provider: 'anthropic', model_id: 'claude-3-opus') do |model|
-  model.name = 'Claude 3 Opus'
-  model.prompt = 'You are Claude, an advanced AI assistant. Provide detailed and thoughtful responses.'
-  model.config = {
-    'temperature' => 0.7,
-    'max_tokens' => 2000,
-    'top_p' => 1.0
-  }
-  model.enabled = false # Disabled until implemented
 end
 
 puts "Created #{LlmModel.count} LLM models"

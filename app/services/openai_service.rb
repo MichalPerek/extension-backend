@@ -16,17 +16,52 @@ class OpenaiService
     messages = build_messages(user_input, instruction, llm_model)
     
     response = make_api_request(messages, llm_model)
+    raw_content = response['choices'][0]['message']['content']
     
-    {
-      text: response['choices'][0]['message']['content'],
-      model: response['model'],
-      provider: 'openai',
-      usage: {
-        promptTokens: response.dig('usage', 'prompt_tokens'),
-        completionTokens: response.dig('usage', 'completion_tokens'),
-        totalTokens: response.dig('usage', 'total_tokens')
+    # Parse the JSON response from the AI
+    begin
+      parsed_response = JSON.parse(raw_content)
+      
+      # Validate required fields
+      unless parsed_response.is_a?(Hash) && 
+             parsed_response['result_text'] && 
+             parsed_response['instruction'] && 
+             parsed_response['original_text']
+        raise "Invalid JSON response structure from AI"
+      end
+      
+      {
+        text: parsed_response['result_text'],
+        instruction: parsed_response['instruction'],
+        original_text: parsed_response['original_text'],
+        language: parsed_response['language'],
+        task_summary: parsed_response['task_summary'],
+        model: response['model'],
+        provider: 'openai',
+        usage: {
+          promptTokens: response.dig('usage', 'prompt_tokens'),
+          completionTokens: response.dig('usage', 'completion_tokens'),
+          totalTokens: response.dig('usage', 'total_tokens')
+        }
       }
-    }
+    rescue JSON::ParserError => e
+      # Fallback if AI doesn't return valid JSON
+      Rails.logger.warn "AI returned non-JSON response: #{raw_content}"
+      {
+        text: raw_content,
+        instruction: instruction,
+        original_text: user_input,
+        language: 'en',
+        task_summary: 'Text transformation',
+        model: response['model'],
+        provider: 'openai',
+        usage: {
+          promptTokens: response.dig('usage', 'prompt_tokens'),
+          completionTokens: response.dig('usage', 'completion_tokens'),
+          totalTokens: response.dig('usage', 'total_tokens')
+        }
+      }
+    end
   end
 
   def test_connection(llm_model)
@@ -61,11 +96,10 @@ class OpenaiService
 
   def build_messages(user_input, instruction, llm_model)
     # Use the LLM model's configured prompt as system message
-    # Combine it with the user's instruction
     system_prompt = llm_model.prompt
-    if instruction.present?
-      system_prompt += "\n\nSpecific instruction: #{instruction}"
-    end
+
+    # Format the user message with both the instruction and the original text
+    user_message = "INSTRUCTION: #{instruction}\n\nORIGINAL TEXT:\n#{user_input}"
 
     [
       {
@@ -74,7 +108,7 @@ class OpenaiService
       },
       {
         role: 'user',
-        content: user_input
+        content: user_message
       }
     ]
   end

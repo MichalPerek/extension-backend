@@ -31,6 +31,10 @@ class Api::Ai::ProcessingController < ApplicationController
       
       render json: {
         result: result[:text],
+        instruction: result[:instruction],
+        original_text: result[:original_text],
+        language: result[:language],
+        task_summary: result[:task_summary],
         model: llm_model.model_id,
         provider: llm_model.provider,
         modelName: llm_model.name,
