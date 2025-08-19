@@ -7,7 +7,12 @@ Rails.application.routes.draw do
     # Profile endpoint
     get 'users/profile', to: 'users#profile'
     
-    resources :conversations, only: [:index, :create, :show]
+    resources :conversations, only: [:index, :show, :update, :destroy] do
+      collection do
+        get 'stats'
+        get 'session/:session_id', to: 'conversations#by_session'
+      end
+    end
     resources :user_prompts, only: [:index, :show, :create, :update, :destroy]
     
     # AI Processing routes

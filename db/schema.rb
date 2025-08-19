@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_19_074121) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "plpgsql"
@@ -58,6 +58,21 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_074121) do
     t.index ["account_id"], name: "index_ai_settings_on_account_id"
   end
 
+  create_table "conversations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.text "original_text", null: false
+    t.jsonb "iterations", default: [], null: false
+    t.integer "status", default: 0, null: false
+    t.string "session_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "created_at"], name: "index_conversations_on_account_id_and_created_at"
+    t.index ["account_id"], name: "index_conversations_on_account_id"
+    t.index ["iterations"], name: "index_conversations_on_iterations", using: :gin
+    t.index ["session_id"], name: "index_conversations_on_session_id"
+    t.index ["status"], name: "index_conversations_on_status"
+  end
+
   create_table "llm_models", force: :cascade do |t|
     t.string "name", null: false
     t.string "provider", null: false
@@ -87,5 +102,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_074121) do
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
   add_foreign_key "ai_settings", "accounts"
+  add_foreign_key "conversations", "accounts"
   add_foreign_key "user_prompts", "accounts"
 end

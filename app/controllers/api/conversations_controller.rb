@@ -1,84 +1,84 @@
 class Api::ConversationsController < ApplicationController
-  before_action :authenticate_user!
-
-  def create
-    original_text = params[:original_text]
-
-    return render json: { error: 'Missing required parameters' }, status: :bad_request unless original_text
-
-    # Mock LLM response (replace with actual OpenAI call)
-    llm_response = mock_llm_response(original_text)
-
-    # Create conversation
-    conversation = current_user.conversations.create!(
-      original_text: original_text,
-      final_text: llm_response[:text]
-    )
-
-    render json: {
-      success: true,
-      response: llm_response[:text],
-      conversation_id: conversation.id
-    }
-  end
+  before_action :require_authentication
+  before_action :set_conversation, only: [:show, :update, :destroy]
 
   def index
-    conversations = current_user.conversations.order(created_at: :desc).limit(10)
+    conversations = current_account.conversations.recent.limit(50)
     
     render json: {
-      conversations: conversations.map do |conv|
-        {
-          id: conv.id,
-          original_text: conv.original_text,
-          final_text: conv.final_text,
-          created_at: conv.created_at
-        }
-      end
+      conversations: conversations.map(&:to_summary_hash)
     }
   end
 
   def show
-    conversation = current_user.conversations.find(params[:id])
+    render json: {
+      conversation: @conversation.to_api_hash
+    }
+  end
+
+  def update
+    case params[:action_type]
+    when 'complete'
+      @conversation.update!(status: 'completed')
+    when 'archive'
+      @conversation.update!(status: 'archived')
+    when 'reactivate'
+      @conversation.update!(status: 'active')
+    else
+      return render json: { error: 'Invalid action_type' }, status: :bad_request
+    end
+
+    render json: {
+      conversation: @conversation.to_summary_hash,
+      message: "Conversation #{params[:action_type]}d successfully"
+    }
+  end
+
+  def destroy
+    @conversation.destroy!
+    render json: { message: 'Conversation deleted successfully' }
+  end
+
+  def by_session
+    session_id = params[:session_id]
+    
+    if session_id.blank?
+      return render json: { error: 'Session ID is required' }, status: :bad_request
+    end
+
+    conversations = current_account.conversations.by_session(session_id).recent
     
     render json: {
-      conversation: {
-        id: conversation.id,
-        original_text: conversation.original_text,
-        final_text: conversation.final_text,
-        created_at: conversation.created_at
-      }
+      conversations: conversations.map(&:to_api_hash),
+      session_id: session_id
     }
+  end
+
+  def stats
+    conversations = current_account.conversations
+    
+    stats = {
+      total_conversations: conversations.count,
+      active_conversations: conversations.active.count,
+      completed_conversations: conversations.completed.count,
+      archived_conversations: conversations.archived.count,
+      total_iterations: conversations.sum(:iteration_count),
+      total_processing_time: conversations.sum(&:total_processing_time),
+      total_tokens_used: conversations.sum(&:total_tokens_used)
+    }
+
+    render json: { stats: stats }
   end
 
   private
 
-  def authenticate_user!
-    token = request.headers['Authorization']&.split(' ')&.last
-    
-    if token.blank?
-      render json: { error: 'Unauthorized' }, status: :unauthorized
-      return
-    end
-
-    # Simple token parsing for development
-    # In production, use proper JWT tokens
-    user_id = token.split('_')[1]
-    @current_user = User.find_by(id: user_id)
-    
-    unless @current_user
-      render json: { error: 'Invalid token' }, status: :unauthorized
-      return
-    end
+  def current_account
+    rodauth.rails_account
   end
 
-  def current_user
-    @current_user
-  end
-
-  def mock_llm_response(original_text)
-    # Mock response - replace with actual OpenAI API call
-    {
-      text: "Processed: '#{original_text}' - This is a mock response. Replace with actual OpenAI API call."
-    }
+  def set_conversation
+    @conversation = current_account.conversations.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    render json: { error: 'Conversation not found' }, status: :not_found
   end
 end
