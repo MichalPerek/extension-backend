@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_19_124615) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "plpgsql"
@@ -45,7 +45,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
     t.string "name"
     t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.datetime "updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.bigint "license_type_id"
+    t.integer "current_month_tokens_used", default: 0, null: false
+    t.date "user_month_start", default: -> { "CURRENT_DATE" }, null: false
+    t.datetime "license_expires_at"
+    t.boolean "license_auto_renew", default: true, null: false
+    t.index ["current_month_tokens_used"], name: "index_accounts_on_current_month_tokens_used"
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
+    t.index ["license_expires_at"], name: "index_accounts_on_license_expires_at"
+    t.index ["license_type_id"], name: "index_accounts_on_license_type_id"
   end
 
   create_table "ai_settings", force: :cascade do |t|
@@ -56,6 +64,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_ai_settings_on_account_id"
+  end
+
+  create_table "app_configs", force: :cascade do |t|
+    t.integer "max_iterations", default: 10, null: false
+    t.integer "max_original_text_length", default: 10000, null: false
+    t.integer "max_result_text_length", default: 50000, null: false
+    t.integer "max_instruction_length", default: 2000, null: false
+    t.bigint "global_monthly_token_limit", default: 10000000, null: false
+    t.bigint "global_current_month_tokens_used", default: 0, null: false
+    t.decimal "token_price_usd", precision: 10, scale: 6, default: "0.000002", null: false
+    t.date "global_month_start", null: false
+    t.integer "estimated_tokens_per_call", default: 500, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -71,6 +93,24 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
     t.index ["iterations"], name: "index_conversations_on_iterations", using: :gin
     t.index ["session_id"], name: "index_conversations_on_session_id"
     t.index ["status"], name: "index_conversations_on_status"
+  end
+
+  create_table "license_types", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "display_name", null: false
+    t.text "description"
+    t.integer "monthly_token_limit", null: false
+    t.decimal "price_per_month", precision: 8, scale: 2, default: "0.0", null: false
+    t.boolean "active", default: true, null: false
+    t.integer "max_conversations_per_day"
+    t.integer "max_iterations_per_conversation"
+    t.jsonb "features", default: {}
+    t.integer "sort_order", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_license_types_on_active"
+    t.index ["name"], name: "index_license_types_on_name", unique: true
+    t.index ["sort_order"], name: "index_license_types_on_sort_order"
   end
 
   create_table "llm_models", force: :cascade do |t|
@@ -101,6 +141,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_092258) do
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
+  add_foreign_key "accounts", "license_types"
   add_foreign_key "ai_settings", "accounts"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "user_prompts", "accounts"

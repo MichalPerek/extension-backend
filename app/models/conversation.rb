@@ -1,17 +1,11 @@
 class Conversation < ApplicationRecord
   belongs_to :account
 
-  # Constants
-  MAX_ITERATIONS = 10
-  MAX_ORIGINAL_TEXT_LENGTH = 10_000
-  MAX_RESULT_TEXT_LENGTH = 50_000
-  MAX_INSTRUCTION_LENGTH = 2_000
-
   # Enums (must be defined before validations that reference them)
   enum :status, { active: 0, completed: 1, archived: 2 }
 
   # Validations
-  validates :original_text, presence: true, length: { maximum: MAX_ORIGINAL_TEXT_LENGTH }
+  validates :original_text, presence: true, length: { maximum: -> { AppConfig.current.max_original_text_length } }
   validates :status, inclusion: { in: statuses.keys }
   validate :iterations_limit
   
@@ -26,12 +20,16 @@ class Conversation < ApplicationRecord
   # Instance methods
   def add_iteration(instruction:, result_text:, language:, task_summary:, model:, provider:, model_name:, usage:, processing_time:)
     # Validate input lengths
-    raise ArgumentError, "Instruction too long (max #{MAX_INSTRUCTION_LENGTH} chars)" if instruction.to_s.length > MAX_INSTRUCTION_LENGTH
-    raise ArgumentError, "Result text too long (max #{MAX_RESULT_TEXT_LENGTH} chars)" if result_text.to_s.length > MAX_RESULT_TEXT_LENGTH
+    max_instruction = AppConfig.current.max_instruction_length
+    max_result = AppConfig.current.max_result_text_length
+    max_iterations = account.max_iterations_per_conversation
+    
+    raise ArgumentError, "Instruction too long (max #{max_instruction} chars)" if instruction.to_s.length > max_instruction
+    raise ArgumentError, "Result text too long (max #{max_result} chars)" if result_text.to_s.length > max_result
     
     # Check iteration limit
-    if iteration_count >= MAX_ITERATIONS
-      raise ArgumentError, "Maximum #{MAX_ITERATIONS} iterations per conversation exceeded"
+    if iteration_count >= max_iterations
+      raise ArgumentError, "Maximum #{max_iterations} iterations per conversation exceeded"
     end
 
     iteration = {
@@ -70,11 +68,11 @@ class Conversation < ApplicationRecord
   end
 
   def can_add_iteration?
-    iteration_count < MAX_ITERATIONS
+    iteration_count < account.max_iterations_per_conversation
   end
 
   def iterations_remaining
-    MAX_ITERATIONS - iteration_count
+    account.max_iterations_per_conversation - iteration_count
   end
 
   def first_instruction
@@ -172,8 +170,9 @@ class Conversation < ApplicationRecord
   def iterations_limit
     return unless iterations.present?
     
-    if iteration_count > MAX_ITERATIONS
-      errors.add(:iterations, "cannot exceed #{MAX_ITERATIONS} iterations per conversation")
+    max_allowed = account.max_iterations_per_conversation
+    if iteration_count > max_allowed
+      errors.add(:iterations, "cannot exceed #{max_allowed} iterations per conversation for your license type")
     end
   end
 end

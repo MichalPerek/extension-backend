@@ -23,11 +23,23 @@ class Api::Ai::ProcessingController < ApplicationController
     begin
       start_time = Time.current
       
+      # Pre-flight token check
+      check_result = AppConfig.can_make_call?(current_account)
+      unless check_result[:allowed]
+        user_token_info = current_account.token_usage_info
+        render json: { 
+          error: "Request blocked: #{check_result[:reason]}",
+          details: check_result,
+          userTokenInfo: user_token_info
+        }, status: :payment_required
+        return
+      end
+      
       # Get the AI provider service with the LLM model configuration
       provider_service = get_ai_provider_service(llm_model)
       
       # Process the prompt using the LLM model's configuration
-      result = provider_service.process_prompt(user_input, instruction, llm_model)
+      result = provider_service.process_prompt(user_input, instruction, llm_model, current_account)
       
       processing_time = ((Time.current - start_time) * 1000).round(2) # milliseconds
       
@@ -40,9 +52,10 @@ class Api::Ai::ProcessingController < ApplicationController
       
       # Check if conversation can accept more iterations
       unless conversation.can_add_iteration?
+        max_iterations = current_account.max_iterations_per_conversation
         render json: { 
-          error: "Maximum #{Conversation::MAX_ITERATIONS} iterations per conversation exceeded. Please start a new conversation.",
-          max_iterations: Conversation::MAX_ITERATIONS,
+          error: "Maximum #{max_iterations} iterations per conversation exceeded for your license type. Please start a new conversation.",
+          max_iterations: max_iterations,
           current_count: conversation.iteration_count,
           conversation_id: conversation.id
         }, status: :unprocessable_entity
@@ -78,7 +91,8 @@ class Api::Ai::ProcessingController < ApplicationController
         iterationId: iteration['id'],
         iterationCount: conversation.iteration_count,
         iterationsRemaining: conversation.iterations_remaining,
-        canAddIteration: conversation.can_add_iteration?
+        canAddIteration: conversation.can_add_iteration?,
+        userTokenInfo: current_account.token_usage_info
       }
     rescue ArgumentError => e
       Rails.logger.warn "AI Processing Input Error: #{e.message}"
