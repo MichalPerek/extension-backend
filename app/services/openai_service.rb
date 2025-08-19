@@ -13,25 +13,6 @@ class OpenaiService
       raise "OpenAI API key not configured"
     end
 
-    # Pre-flight check for both global and user limits
-    check_result = AppConfig.can_make_call?(account)
-    unless check_result[:allowed]
-      case check_result[:reason]
-      when 'global_limit_exceeded'
-        raise "Global monthly token limit exceeded for the application"
-      when 'global_insufficient_tokens' 
-        raise "Insufficient global tokens. Need ~#{check_result[:needed]}, have #{check_result[:available]}"
-      when 'user_limit_exceeded'
-        raise "Your monthly token limit has been exceeded"
-      when 'user_insufficient_tokens'
-        raise "Insufficient tokens. Need ~#{check_result[:needed]}, have #{check_result[:available]}"
-      when 'license_expired'
-        raise "Your license has expired"
-      when 'daily_conversation_limit'
-        raise "Daily conversation limit reached. Used: #{check_result[:used]}/#{check_result[:limit]}"
-      end
-    end
-
     messages = build_messages(user_input, instruction, llm_model)
     
     response = make_api_request(messages, llm_model)

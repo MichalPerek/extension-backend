@@ -150,6 +150,31 @@ class Account < ApplicationRecord
     effective_license_type.feature_enabled?(feature_name)
   end
 
+  # Check if this account can make an AI call
+  def can_make_call?
+    # Check if user's license is active
+    return { allowed: false, reason: 'license_expired', type: 'user' } if license_expired?
+    
+    # Check global app limit first
+    config = AppConfig.current
+    return { allowed: false, reason: 'global_limit_exceeded', type: 'global' } if config.global_limit_exceeded?
+    
+    # Check if global app has enough estimated tokens
+    estimated_tokens = config.estimated_tokens_per_call
+    return { allowed: false, reason: 'global_insufficient_tokens', type: 'global', needed: estimated_tokens, available: config.global_tokens_remaining } if config.global_tokens_remaining < estimated_tokens
+    
+    # Check user limit
+    return { allowed: false, reason: 'user_limit_exceeded', type: 'user' } if user_limit_exceeded?
+    
+    # Check if user has enough estimated tokens
+    return { allowed: false, reason: 'user_insufficient_tokens', type: 'user', needed: estimated_tokens, available: user_tokens_remaining } if user_tokens_remaining < estimated_tokens
+    
+    # Check daily conversation limit
+    return { allowed: false, reason: 'daily_conversation_limit', type: 'user', used: conversations_today, limit: max_conversations_per_day } unless can_create_conversation?
+    
+    { allowed: true }
+  end
+
   # Helper method to get join date
   def join_date
     created_at&.strftime('%B %Y')

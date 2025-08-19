@@ -21,31 +21,7 @@ class AppConfig < ApplicationRecord
     end
   end
 
-  # Check if a call can be made (both global and user limits)
-  def self.can_make_call?(account)
-    config = current
-    
-    # Check if user's license is active
-    return { allowed: false, reason: 'license_expired', type: 'user' } if account.license_expired?
-    
-    # Check global app limit first
-    return { allowed: false, reason: 'global_limit_exceeded', type: 'global' } if config.global_limit_exceeded?
-    
-    # Check if global app has enough estimated tokens
-    estimated_tokens = config.estimated_tokens_per_call
-    return { allowed: false, reason: 'global_insufficient_tokens', type: 'global', needed: estimated_tokens, available: config.global_tokens_remaining } if config.global_tokens_remaining < estimated_tokens
-    
-    # Check user limit
-    return { allowed: false, reason: 'user_limit_exceeded', type: 'user' } if account.user_limit_exceeded?
-    
-    # Check if user has enough estimated tokens
-    return { allowed: false, reason: 'user_insufficient_tokens', type: 'user', needed: estimated_tokens, available: account.user_tokens_remaining } if account.user_tokens_remaining < estimated_tokens
-    
-    # Check daily conversation limit
-    return { allowed: false, reason: 'daily_conversation_limit', type: 'user', used: account.conversations_today, limit: account.max_conversations_per_day } unless account.can_create_conversation?
-    
-    { allowed: true }
-  end
+
 
   # Global token tracking
   def add_global_token_usage(tokens_used)

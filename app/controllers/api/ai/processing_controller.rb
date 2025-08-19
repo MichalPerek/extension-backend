@@ -24,7 +24,7 @@ class Api::Ai::ProcessingController < ApplicationController
       start_time = Time.current
       
       # Pre-flight token check
-      check_result = AppConfig.can_make_call?(current_account)
+      check_result = current_account.can_make_call?
       unless check_result[:allowed]
         user_token_info = current_account.token_usage_info
         render json: { 
