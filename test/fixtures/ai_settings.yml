@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  account: one
+  default_provider: MyString
+  default_model: MyString
+  providers: MyText
+
+two:
+  account: two
+  default_provider: MyString
+  default_model: MyString
+  providers: MyText

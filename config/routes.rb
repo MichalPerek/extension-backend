@@ -9,6 +9,14 @@ Rails.application.routes.draw do
     
     resources :conversations, only: [:index, :create, :show]
     resources :user_prompts, only: [:index, :show, :create, :update, :destroy]
+    
+    # AI Processing routes
+    namespace :ai do
+      post 'process', to: 'processing#process_prompt'
+      get 'models', to: 'processing#models'
+      get 'available_models', to: 'processing#available_models'
+      post 'test/:model_id', to: 'processing#test_model'
+    end
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

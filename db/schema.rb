@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_18_081014) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_19_074121) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "plpgsql"
@@ -48,6 +48,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_18_081014) do
     t.index ["email"], name: "index_accounts_on_email", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
   end
 
+  create_table "ai_settings", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "default_provider"
+    t.string "default_model"
+    t.text "providers"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_ai_settings_on_account_id"
+  end
+
+  create_table "llm_models", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "provider", null: false
+    t.string "model_id", null: false
+    t.text "prompt", null: false
+    t.jsonb "config", default: {}
+    t.boolean "enabled", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_llm_models_on_enabled"
+    t.index ["provider", "model_id"], name: "index_llm_models_on_provider_and_model_id", unique: true
+    t.index ["provider"], name: "index_llm_models_on_provider"
+  end
+
   create_table "user_prompts", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "title", limit: 255, null: false
@@ -62,5 +86,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_18_081014) do
   add_foreign_key "account_password_reset_keys", "accounts", column: "id"
   add_foreign_key "account_remember_keys", "accounts", column: "id"
   add_foreign_key "account_verification_keys", "accounts", column: "id"
+  add_foreign_key "ai_settings", "accounts"
   add_foreign_key "user_prompts", "accounts"
 end
