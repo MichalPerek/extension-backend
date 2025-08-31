@@ -1,7 +1,7 @@
 class LlmModel < ApplicationRecord
   # Validations
   validates :name, presence: true
-  validates :provider, presence: true, inclusion: { in: %w[openai anthropic] }
+  validates :provider, presence: true, inclusion: { in: %w[openai anthropic groq] }
   validates :model_id, presence: true
   validates :prompt, presence: true
   validates :provider, uniqueness: { scope: :model_id }

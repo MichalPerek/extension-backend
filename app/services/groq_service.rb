@@ -1,0 +1,187 @@
+require 'net/http'
+require 'json'
+
+class GroqService
+  GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+  
+  def initialize
+    @api_key = get_api_key
+  end
+
+  def process_prompt(user_input, instruction, llm_model, account)
+    if @api_key.blank?
+      raise "Groq API key not configured"
+    end
+
+    messages = build_messages(user_input, instruction, llm_model)
+    
+    response = make_api_request(messages, llm_model)
+    raw_content = response['choices'][0]['message']['content']
+    
+    # Track actual token usage for both global and user
+    tokens_used = response.dig('usage', 'total_tokens') || 0
+    if tokens_used > 0
+      AppConfig.current.add_global_token_usage(tokens_used)
+      account.add_user_token_usage(tokens_used)
+    end
+    
+    # Parse the JSON response from the AI
+    begin
+      parsed_response = JSON.parse(raw_content)
+      
+      # Validate required fields
+      unless parsed_response.is_a?(Hash) && 
+             parsed_response['result_text'] && 
+             parsed_response['instruction'] && 
+             parsed_response['original_text']
+        raise "Invalid JSON response structure from AI"
+      end
+      
+      {
+        text: parsed_response['result_text'],
+        instruction: parsed_response['instruction'],
+        original_text: parsed_response['original_text'],
+        language: parsed_response['language'],
+        task_summary: parsed_response['task_summary'],
+        model: response['model'],
+        provider: 'groq',
+        usage: {
+          promptTokens: response.dig('usage', 'prompt_tokens'),
+          completionTokens: response.dig('usage', 'completion_tokens'),
+          totalTokens: response.dig('usage', 'total_tokens')
+        }
+      }
+    rescue JSON::ParserError => e
+      # Fallback if AI doesn't return valid JSON
+      Rails.logger.warn "AI returned non-JSON response: #{raw_content}"
+      {
+        text: raw_content,
+        instruction: instruction,
+        original_text: user_input,
+        language: 'en',
+        task_summary: 'Text transformation',
+        model: response['model'],
+        provider: 'groq',
+        usage: {
+          promptTokens: response.dig('usage', 'prompt_tokens'),
+          completionTokens: response.dig('usage', 'completion_tokens'),
+          totalTokens: response.dig('usage', 'total_tokens')
+        }
+      }
+    end
+  end
+
+  def test_connection(llm_model)
+    if @api_key.blank?
+      raise "Groq API key not configured"
+    end
+
+    # Simple test with minimal request
+    messages = [{ role: 'user', content: 'Test' }]
+    
+    begin
+      # Use a minimal configuration for testing
+      test_config = {
+        model: llm_model.model_id,
+        messages: messages
+      }
+      
+      response = make_direct_api_request(test_config)
+      "Connection successful. Model: #{response['model']}"
+    rescue => e
+      raise "Connection failed: #{e.message}"
+    end
+  end
+
+  private
+
+  def get_api_key
+    ENV['GROQ_API_KEY']
+  end
+
+  def build_messages(user_input, instruction, llm_model)
+    # Use the LLM model's configured prompt as system message
+    system_prompt = llm_model.prompt
+
+    # Format the user message with both the instruction and the original text
+    user_message = "INSTRUCTION: #{instruction}\n\nORIGINAL TEXT:\n#{user_input}"
+
+    [
+      {
+        role: 'system',
+        content: system_prompt
+      },
+      {
+        role: 'user',
+        content: user_message
+      }
+    ]
+  end
+
+  def make_api_request(messages, llm_model)
+    request_body = {
+      model: llm_model.model_id,
+      messages: messages
+    }
+
+    # Add configuration parameters conditionally based on enable flags
+    config = llm_model.config
+    
+    # All parameters are now conditional
+    if config['max_completion_tokens_enabled'] && config['max_completion_tokens']
+      request_body[:max_completion_tokens] = config['max_completion_tokens']
+    end
+    
+    if config['temperature_enabled'] && config['temperature']
+      request_body[:temperature] = config['temperature']
+    end
+    
+    if config['top_p_enabled'] && config['top_p']
+      request_body[:top_p] = config['top_p']
+    end
+    
+    if config['frequency_penalty_enabled'] && config['frequency_penalty']
+      request_body[:frequency_penalty] = config['frequency_penalty']
+    end
+    
+    if config['presence_penalty_enabled'] && config['presence_penalty']
+      request_body[:presence_penalty] = config['presence_penalty']
+    end
+    
+    # Legacy max_tokens support (for older models)
+    if config['max_tokens_enabled'] && config['max_tokens']
+      request_body[:max_tokens] = config['max_tokens']
+    end
+
+    make_direct_api_request(request_body)
+  end
+
+  def make_direct_api_request(request_body)
+    uri = URI(GROQ_API_URL)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.read_timeout = 30
+    http.open_timeout = 10
+
+    request = Net::HTTP::Post.new(uri)
+    request['Authorization'] = "Bearer #{@api_key}"
+    request['Content-Type'] = 'application/json'
+    request.body = request_body.to_json
+
+    response = http.request(request)
+    
+    unless response.code == '200'
+      error_data = JSON.parse(response.body) rescue {}
+      error_message = error_data.dig('error', 'message') || "HTTP #{response.code}: #{response.message}"
+      raise error_message
+    end
+
+    JSON.parse(response.body)
+  rescue JSON::ParserError => e
+    raise "Invalid response from Groq API: #{e.message}"
+  rescue Net::ReadTimeout, Net::OpenTimeout => e
+    raise "Request timeout: #{e.message}"
+  rescue => e
+    raise "Groq API error: #{e.message}"
+  end
+end

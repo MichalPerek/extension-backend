@@ -197,6 +197,8 @@ class Api::Ai::ProcessingController < ApplicationController
       OpenaiService.new
     when 'anthropic'
       AnthropicService.new
+    when 'groq'
+      GroqService.new
     else
       raise "Unknown AI provider: #{llm_model.provider}"
     end
