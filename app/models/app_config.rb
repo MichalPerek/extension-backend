@@ -1,6 +1,9 @@
 class AppConfig < ApplicationRecord
   validates_uniqueness_of :id, message: "Only one configuration record allowed"
   
+  # Associations
+  belongs_to :current_ai_model, class_name: 'LlmModel', optional: true
+  
   # Validations
   validates :max_iterations, presence: true, numericality: { greater_than: 0, less_than_or_equal_to: 50 }
   validates :max_original_text_length, presence: true, numericality: { greater_than: 100, less_than_or_equal_to: 100_000 }
@@ -9,6 +12,8 @@ class AppConfig < ApplicationRecord
   validates :global_monthly_token_limit, presence: true, numericality: { greater_than: 1000 }
   validates :estimated_tokens_per_call, presence: true, numericality: { greater_than: 10, less_than_or_equal_to: 10000 }
   validates :token_price_usd, presence: true, numericality: { greater_than: 0 }
+  
+  # AI Model validations - allow disabled models to be current
 
   # Singleton pattern
   def self.current
@@ -108,6 +113,17 @@ class AppConfig < ApplicationRecord
     puts "\nToken Configuration:"
     puts "  Price per token: $#{config.token_price_usd}"
     puts "  Estimated tokens per call: #{config.estimated_tokens_per_call}"
+    puts "\nCurrent AI Model:"
+    if config.current_ai_model
+      puts "  #{config.current_ai_model.name} (#{config.current_ai_model.provider}:#{config.current_ai_model.model_id})"
+      puts "  Status: #{config.current_ai_model.enabled? ? '✅ Enabled' : '❌ Disabled'}"
+      unless config.current_ai_model.enabled?
+        puts "  ⚠️  Warning: Current model is disabled - API calls will fail"
+      end
+    else
+      puts "  ❌ No AI model selected"
+    end
+    
     puts "\nLicense Types:"
     LicenseType.active.ordered.each do |license|
       puts "  #{license.display_name}: #{license.monthly_token_limit} tokens/month ($#{license.price_per_month}/month)"
@@ -124,6 +140,21 @@ class AppConfig < ApplicationRecord
     )
     puts "✅ Global monthly token usage reset"
     config
+  end
+
+  # AI Model management methods
+
+  def set_current_ai_model(model_id)
+    model = LlmModel.find_by(id: model_id)
+    raise ArgumentError, "Model with ID #{model_id} not found" unless model
+    
+    update!(current_ai_model: model)
+    clear_cache
+  end
+
+  def clear_current_ai_model
+    update!(current_ai_model: nil)
+    clear_cache
   end
 
   after_update :clear_cache

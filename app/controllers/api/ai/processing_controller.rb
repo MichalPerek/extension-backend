@@ -12,15 +12,11 @@ class Api::Ai::ProcessingController < ApplicationController
       return
     end
 
-    # Automatically select the first available enabled model
-    llm_model = LlmModel.enabled.first
-    Rails.logger.info "Auto-selected AI model: #{llm_model&.provider}:#{llm_model&.model_id} (#{llm_model&.name})"
+    # Validate AI model and return early if there's an issue
+    return if validate_ai_model_and_render_errors
     
-    unless llm_model
-      Rails.logger.error "No AI models are currently available"
-      render json: { error: 'No AI models are currently available' }, status: :service_unavailable
-      return
-    end
+    # Get the validated AI model
+    llm_model = AppConfig.current.current_ai_model
 
     begin
       start_time = Time.current
@@ -128,12 +124,11 @@ class Api::Ai::ProcessingController < ApplicationController
   end
 
   def test_model
-    # Test the first available enabled model
-    llm_model = LlmModel.enabled.first
-    unless llm_model
-      render json: { success: false, message: 'No AI models are currently available' }
-      return
-    end
+    # Validate AI model and return early if there's an issue
+    return if validate_ai_model_and_render_errors
+    
+    # Get the validated AI model
+    llm_model = AppConfig.current.current_ai_model
     
     begin
       provider_service = get_ai_provider_service(llm_model)
@@ -146,6 +141,36 @@ class Api::Ai::ProcessingController < ApplicationController
   end
 
   private
+
+  def validate_ai_model_and_render_errors
+    app_config = AppConfig.current
+    llm_model = app_config.current_ai_model
+    
+    # Check if no AI model is selected
+    unless llm_model
+      Rails.logger.error "No AI model selected"
+      render json: { error: 'No AI model selected' }, status: :service_unavailable
+      return true
+    end
+
+    # Check if current model is disabled
+    unless llm_model.enabled?
+      Rails.logger.error "Current AI model is disabled: #{llm_model.provider}:#{llm_model.model_id} (#{llm_model.name})"
+      render json: { 
+        error: 'Current AI model is disabled',
+        model: {
+          name: llm_model.name,
+          provider: llm_model.provider,
+          model_id: llm_model.model_id,
+          enabled: false
+        }
+      }, status: :service_unavailable
+      return true
+    end
+
+    Rails.logger.info "Using AI model: #{llm_model.provider}:#{llm_model.model_id} (#{llm_model.name})"
+    false # No errors, continue processing
+  end
 
   def find_or_create_conversation(user_input:, conversation_id: nil, session_id: nil)
     current_account = rodauth.rails_account

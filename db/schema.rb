@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_19_124615) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_31_200942) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "plpgsql"
@@ -78,6 +78,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_124615) do
     t.integer "estimated_tokens_per_call", default: 500, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "current_ai_model_id"
+    t.index ["current_ai_model_id"], name: "index_app_configs_on_current_ai_model_id"
   end
 
   create_table "conversations", force: :cascade do |t|
@@ -143,6 +145,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_19_124615) do
   add_foreign_key "account_verification_keys", "accounts", column: "id"
   add_foreign_key "accounts", "license_types"
   add_foreign_key "ai_settings", "accounts"
+  add_foreign_key "app_configs", "llm_models", column: "current_ai_model_id"
   add_foreign_key "conversations", "accounts"
   add_foreign_key "user_prompts", "accounts"
 end
